@@ -1299,7 +1299,7 @@ async def on_message(msg):
 
 		if message.content.startswith('!정산 '):
 			SearchID = hello[4:]
-			wks = gc.open("분배시트").worksheet("모든내역검색")
+			wks = gc.open("린드8연합분배").worksheet("모든내역검색")
 
 			wks.update_acell('E2', SearchID)
 
@@ -1311,7 +1311,7 @@ async def on_message(msg):
 
 		if message.content.startswith('!정산분배'):
 			SearchID = hello[6:]
-			wks = gc.open("분배시트").worksheet("줄내역검색")
+			wks = gc.open("린드8연합분배").worksheet("줄내역검색")
 
 			Cell_ID = []
 			tmp_ID  = []
