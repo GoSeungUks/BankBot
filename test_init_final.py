@@ -1299,7 +1299,7 @@ async def on_message(msg):
 
 		if message.content.startswith('!정산 '):
 			SearchID = hello[4:]
-			wks = gc.open("린드8연합분배").worksheet("모든내역검색")
+			wks = gc.open("린드8연합분배").worksheet("받을내역검색")
 
 			wks.update_acell('E2', SearchID)
 
