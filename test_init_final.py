@@ -140,6 +140,10 @@ def init():
 		
 	if basicSetting[7] != "":
 		basicSetting[7] = int(basicSetting[7])
+		
+	basicSetting[6] = int('516453752329338886')
+	basicSetting[7] = int('576948451485548545')
+		
 	#print (inputData, len(inputData))
 	
 	bossNum = int((len(inputData)-8)/5)
