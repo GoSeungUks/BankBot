@@ -973,7 +973,7 @@ async def on_message(msg):
 		if message.content.startswith('!v') or message.content.startswith('!ㅍ'):
 			tmp_sayMessage = message.content
 			sayMessage = tmp_sayMessage[3:]
-			await MakeSound(message.author.display_name +'님이.' + sayMessage, './sound/say')
+			await MakeSound(sayMessage, './sound/say')
 			await client.get_channel(channel).send("```< " + msg.author.display_name + " >님이 \"" + sayMessage + "\"```", tts=False)
 			await PlaySound(voice_client1, './sound/say.mp3')
 
