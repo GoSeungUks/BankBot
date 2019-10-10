@@ -424,7 +424,11 @@ async def MakeSound(saveSTR, filename):
 #mp3 파일 재생함수	
 async def PlaySound(voiceclient, filename):
 	source = discord.FFmpegPCMAudio(filename)
-	voiceclient.play(source)
+	try:
+		voiceclient.play(source)
+	except discord.errors.ClientException:
+		while voiceclient.is_playing():
+			await asyncio.sleep(1)
 	while voiceclient.is_playing():
 		await asyncio.sleep(1)
 	voiceclient.stop()
