@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*- 
 
-################ V3 #####################
+################ V10 #####################
 
 import os
 import sys
@@ -13,7 +13,9 @@ from discord.ext import commands
 from gtts import gTTS
 from github import Github
 import base64
-import re
+import re #정산
+import gspread #정산
+from oauth2client.service_account import ServiceAccountCredentials #정산
 
 if not discord.opus.is_loaded():
 	discord.opus.load_opus('opus')
@@ -99,6 +101,9 @@ def init():
 	global channel_type
 	global LoadChk
 	
+	global gc #정산
+	global credentials #정산
+	
 	tmp_bossData = []
 	tmp_fixed_bossData = []
 	f = []
@@ -133,15 +138,18 @@ def init():
 	del(fixed_inputData[0])
 		
 	basicSetting.append(inputData[0][11:])   #basicSetting[0] : timezone
-	basicSetting.append(inputData[5][15:])   #basicSetting[1] : before_alert
-	basicSetting.append(inputData[7][10:])   #basicSetting[2] : mungChk
-	basicSetting.append(inputData[6][16:])   #basicSetting[3] : before_alert1
+	basicSetting.append(inputData[6][15:])   #basicSetting[1] : before_alert
+	basicSetting.append(inputData[8][10:])   #basicSetting[2] : mungChk
+	basicSetting.append(inputData[7][16:])   #basicSetting[3] : before_alert1
 	basicSetting.append(inputData[1][14:16]) #basicSetting[4] : restarttime 시
 	basicSetting.append(inputData[1][17:])   #basicSetting[5] : restarttime 분
 	basicSetting.append(inputData[2][15:])   #basicSetting[6] : voice채널 ID
 	basicSetting.append(inputData[3][14:])   #basicSetting[7] : text채널 ID
 	basicSetting.append(inputData[4][16:])   #basicSetting[8] : 사다리 채널 ID
 	basicSetting.append(inputData[8][14:])   #basicSetting[9] : !ㅂ 출력 수
+	basicSetting.append(inputData[11][11:])  #basicSetting[10] : json 파일명
+	basicSetting.append(inputData[5][17:])   #basicSetting[11] : 정산 채널 ID
+	basicSetting.append(inputData[10][12:])  #basicSetting[12] : sheet 이름
 	
 	for i in range(len(basicSetting)):
 		basicSetting[i] = basicSetting[i].strip()
@@ -153,7 +161,7 @@ def init():
 		basicSetting[7] = int(basicSetting[7])
 	#print (inputData, len(inputData))
 	
-	### 강제 채널 고정###
+	### 채널 고정###
 	#basicSetting[6] = int('1234567890') #보이스채널ID
 	#basicSetting[7] = int('1234567890') #택스트채널ID
 	
@@ -228,6 +236,11 @@ def init():
 	for i in range(fixed_bossNum):
 		if fixed_bossTime[i] < tmp_fixed_now :
 			fixed_bossTime[i] = fixed_bossTime[i] + datetime.timedelta(days=int(1))
+		
+	#inidata.close()
+	scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive'] #정산
+	
+	credentials = ServiceAccountCredentials.from_json_keyfile_name(basicSetting[10], scope) #정산
 
 init()
 
@@ -667,6 +680,9 @@ while True:
 		global chflg
 		global LoadChk
 		
+		global gc #정산
+		global credentials	#정산
+		
 		id = msg.author.id #id라는 변수에는 메시지를 보낸사람의 ID를 담습니다.
 		
 		if chflg == 0 :
@@ -702,29 +718,160 @@ while True:
 			
 		if client.get_channel(channel) != msg.channel :
 			##### 사다리 채널바꾸기
-			if basicSetting[8] != "":
-				if msg.channel.id == int(basicSetting[8]): #### 사다리 채널ID 값넣으면 됨
-					message = await msg.channel.fetch_message(msg.id)
-					##################################
+			if msg.channel.id == int(basicSetting[8]): #### 사다리 채널ID 값넣으면 됨
+				message = await msg.channel.fetch_message(msg.id)
+				##################################
 
-					if message.content.startswith('!사다리'):
-						ladder = []
-						ladder = message.content[5:].split(" ")
-						num_cong = int(ladder[0])
-						del(ladder[0])
-						if num_cong < len(ladder):
-							result_ladder = random.sample(ladder, num_cong)
-							result_ladderSTR = ','.join(map(str, result_ladder))
-							embed = discord.Embed(
-								title = "----- 당첨! -----",
-								description= '```' + result_ladderSTR + '```',
+				if message.content.startswith('!사다리'):
+					ladder = []
+					ladder = message.content[5:].split(" ")
+					num_cong = int(ladder[0])
+					del(ladder[0])
+					if num_cong < len(ladder):
+						result_ladder = random.sample(ladder, num_cong)
+						result_ladderSTR = ','.join(map(str, result_ladder))
+						embed = discord.Embed(
+							title = "----- 당첨! -----",
+							description= '```' + result_ladderSTR + '```',
+							color=0xff00ff
+							)
+						await msg.channel.send(embed=embed, tts=False)
+					else:
+						await msg.channel.send('```추첨인원이 총 인원과 같거나 많습니다. 재입력 해주세요```', tts=False)
+
+			##################################
+			elif msg.channel.id == int(basicSetting[11]): #### 정산채널 채널ID 값넣으면 됨
+				message = await msg.channel.fetch_message(msg.id)
+
+				################ 정산확인 ################ 
+
+				if message.content.startswith('!정산 '):
+					SearchID = message.content[4:]
+					gc = gspread.authorize(credentials)
+					wks = gc.open(basicSetting[12]).worksheet("최종수령내역")
+
+					wks.update_acell('E2', SearchID)
+
+					result = wks.acell('F2').value
+					result_ID = wks.acell('E4').value
+					
+					if result_ID == "" :
+						embed = discord.Embed(
+								description= '```' + SearchID + ' 님이 받을 다이야는 ' + result + ' 다이야 입니다.```',
 								color=0xff00ff
 								)
-							await msg.channel.send(embed=embed, tts=False)
+						await msg.channel.send(embed=embed, tts=False)
+					else :
+						await msg.channel.send("해당 아이디가 없습니다.", tts=False)
+					
+				'''
+				################ 정산내역 ################ 
+
+				if message.content.startswith('!정산내역'):
+					SearchID = message.content[6:]
+					gc = gspread.authorize(credentials)
+					wks = gc.open(basicSetting[12]).worksheet("정산내역")
+
+					Cell_ID = []
+					Cell_Dia = []
+					Cell_Date = []
+
+
+					i = 0
+
+					wks.update_acell('E2', SearchID)
+
+					cell_Date_list = wks.range('B6:B3000')
+					cell_ID_list = wks.range('C6:C3000')
+					cell_Dia_list = wks.range('D6:D1000')
+
+					for i in range(len(cell_ID_list)):
+						if cell_ID_list[i].value != '':
+							Cell_Date.append(cell_Date_list[i].value)
+							Cell_ID.append(cell_ID_list[i].value)
+							Cell_Dia.append(cell_Dia_list[i].value)
 						else:
-							await msg.channel.send('```추첨인원이 총 인원과 같거나 많습니다. 재입력 해주세요```', tts=False)
-				else :
-					return None
+							break
+
+					if len(Cell_ID) == 0 :
+						await msg.channel.send("정산한 다이야가 없습니다.", tts=False)
+					else:
+						result = wks.acell('F2').value
+
+						information = ''
+						for i in range(len(Cell_ID)):
+							information += Cell_Date[i] + '  :  ' + str(Cell_Dia[i]) + ' 정산!\n'
+
+						#await client.get_channel(channel).send(SearchID + '님이 분배해야할 다이야는 ' + result + ' 다이야 입니다.', tts=False)
+						embed = discord.Embed(
+								title = "----- 정 산 금 -----",
+								description= '총 '+ result + ' 다이야',
+								color=0xff00ff
+								)
+						embed.add_field(
+								name="----- 정산내역 -----",
+								value=information,
+								inline = False
+								)
+						await msg.channel.send( embed=embed, tts=False)
+						
+						wks.update_acell('E2', "")
+						
+				################ 지원내역 ################ 
+				
+				if message.content.startswith('!지원내역'):
+					SearchID = message.content[6:]
+					gc = gspread.authorize(credentials)
+					wks = gc.open(basicSetting[12]).worksheet("지원내역")
+
+					Cell_ID = []
+					Cell_Dia = []
+					Cell_Date = []
+					Cell_Cus = []
+
+
+					i = 0
+
+					wks.update_acell('E2', SearchID)
+
+					cell_Date_list = wks.range('B6:B3000')
+					cell_ID_list = wks.range('C6:C3000')
+					cell_Dia_list = wks.range('D6:D1000')
+					cell_Cus_list = wks.range('E6:E1000')
+
+					for i in range(len(cell_ID_list)):
+						if cell_ID_list[i].value != '':
+							Cell_Date.append(cell_Date_list[i].value)
+							Cell_ID.append(cell_ID_list[i].value)
+							Cell_Dia.append(cell_Dia_list[i].value)
+							Cell_Cus.append(cell_Cus_list[i].value)
+						else:
+							break
+
+					if len(Cell_ID) == 0 :
+						await msg.channel.send("지원 받은 다이야가 없습니다.", tts=False)
+					else:
+						result = wks.acell('F2').value
+
+						information = ''
+						for i in range(len(Cell_ID)):
+							information += Cell_Date[i] + '  :  ' + str(Cell_Dia[i]) + '  ' + Cell_Cus[i] +' 지원!\n'
+
+						embed = discord.Embed(
+								title = "----- 지 원 금 -----",
+								description= '총 '+ result + ' 다이야',
+								color=0xff00ff
+								)
+						embed.add_field(
+								name="----- 지원내역 -----",
+								value=information,
+								inline = False
+								)
+						await msg.channel.send( embed=embed, tts=False)
+						
+						wks.update_acell('E2', "")
+				##################################	
+				'''
 			else :
 				return None
 			#return None
@@ -1032,7 +1179,7 @@ while True:
 			if message.content.startswith('!메뉴'):
 				embed = discord.Embed(
 						title = "----- 메뉴 -----",
-						description= '```!현재시간\n!채널확인\n!채널이동 [채널명]\n!소환\n!불러오기\n!초기화\n!\n재시작!명치\n!미예약\n!분배 [인원] [금액]\n!사다리 [뽑을인원수] [아이디1] [아이디2] ...\n!보스일괄 00:00 또는 !보스일괄 0000\n!ㅂ,ㅃ,q\n\n[보스명]컷\n[보스명]컷 00:00 또는 [보스명]컷 0000\n[보스명]멍\n[보스명]멍 00:00 또는 [보스명]멍 0000\n[보스명]예상 00:00 또는 [보스명]예상 0000\n[보스명]삭제\n보스탐```',
+						description= '```!현재시간\n!채널확인\n!채널이동 [채널명]\n!소환\n!불러오기\n!초기화\n!재시작\n!명치\n!미예약\n!분배 [인원] [금액]\n!사다리 [뽑을인원수] [아이디1] [아이디2] ...\n!보스일괄 00:00 또는 !보스일괄 0000\n!ㅂ,ㅃ,q\n\n[보스명]컷\n[보스명]컷 00:00 또는 [보스명]컷 0000\n[보스명]멍\n[보스명]멍 00:00 또는 [보스명]멍 0000\n[보스명]예상 00:00 또는 [보스명]예상 0000\n[보스명]삭제\n보스탐```',
 						color=0xff00ff
 						)
 				embed.add_field(
@@ -1417,6 +1564,132 @@ while True:
 				#client.clear()
 				raise SystemExit
 
+			################ 정산확인 ################ 
+
+			if message.content.startswith('!정산 '):
+				SearchID = hello[4:]
+				gc = gspread.authorize(credentials)
+				wks = gc.open(basicSetting[12]).worksheet("최종수령내역")  #정산결과 시트이름
+
+				wks.update_acell('E2', SearchID) 
+
+				result = wks.acell('F2').value
+				result_ID = wks.acell('E4').value
+
+				if result_ID == "" :
+					embed = discord.Embed(
+							description= '```' + SearchID + ' 님이 받을 다이야는 ' + result + ' 다이야 입니다.```',
+							color=0xff00ff
+							)
+					await msg.channel.send(embed=embed, tts=False)
+				else :
+					await msg.channel.send("해당 아이디가 없습니다.", tts=False)
+					
+			'''
+			################ 정산내역 ################ 
+
+			if message.content.startswith('!정산내역'):
+				SearchID = hello[6:]
+				gc = gspread.authorize(credentials)
+				wks = gc.open(basicSetting[12]).worksheet("정산내역")
+
+				Cell_ID = []
+				Cell_Dia = []
+				Cell_Date = []
+
+
+				i = 0
+
+				wks.update_acell('E2', SearchID)
+
+				cell_Date_list = wks.range('B6:B3000')
+				cell_ID_list = wks.range('C6:C3000')
+				cell_Dia_list = wks.range('D6:D1000')
+
+				for i in range(len(cell_ID_list)):
+					if cell_ID_list[i].value != '':
+						Cell_Date.append(cell_Date_list[i].value)
+						Cell_ID.append(cell_ID_list[i].value)
+						Cell_Dia.append(cell_Dia_list[i].value)
+					else:
+						break
+
+				if len(Cell_ID) == 0 :
+					await msg.channel.send("정산한 다이야가 없습니다.", tts=False)
+				else:
+					result = wks.acell('F2').value
+
+					information = ''
+					for i in range(len(Cell_ID)):
+						information += Cell_Date[i] + '  :  ' + str(Cell_Dia[i]) + ' 정산!\n'
+
+					#await client.get_channel(channel).send(SearchID + '님이 분배해야할 다이야는 ' + result + ' 다이야 입니다.', tts=False)
+					embed = discord.Embed(
+							title = "----- 정 산 금 -----",
+							description= '총 '+ result + ' 다이야',
+							color=0xff00ff
+							)
+					embed.add_field(
+							name="----- 정산내역 -----",
+							value=information,
+							inline = False
+							)
+					await client.get_channel(channel).send(embed=embed, tts=False)
+					wks.update_acell('E2', "")
+
+			################ 지원내역 ################ 
+			
+			if message.content.startswith('!지원내역'):
+				SearchID = hello[6:]
+				gc = gspread.authorize(credentials)
+				wks = gc.open(basicSetting[12]).worksheet("지원내역")
+
+				Cell_ID = []
+				Cell_Dia = []
+				Cell_Date = []
+				Cell_Cus = []
+
+
+				i = 0
+
+				wks.update_acell('E2', SearchID)
+
+				cell_Date_list = wks.range('B6:B3000')
+				cell_ID_list = wks.range('C6:C3000')
+				cell_Dia_list = wks.range('D6:D1000')
+				cell_Cus_list = wks.range('E6:E1000')
+
+				for i in range(len(cell_ID_list)):
+					if cell_ID_list[i].value != '':
+						Cell_Date.append(cell_Date_list[i].value)
+						Cell_ID.append(cell_ID_list[i].value)
+						Cell_Dia.append(cell_Dia_list[i].value)
+						Cell_Cus.append(cell_Cus_list[i].value)
+					else:
+						break
+
+				if len(Cell_ID) == 0 :
+					await msg.channel.send("지원 받은 다이야가 없습니다.", tts=False)
+				else:
+					result = wks.acell('F2').value
+
+					information = ''
+					for i in range(len(Cell_ID)):
+						information += Cell_Date[i] + '  :  ' + str(Cell_Dia[i]) + '  ' + Cell_Cus[i] +' 지원!\n'
+
+					embed = discord.Embed(
+							title = "----- 지 원 금 -----",
+							description= '총 '+ result + ' 다이야',
+							color=0xff00ff
+							)
+					embed.add_field(
+							name="----- 지원내역 -----",
+							value=information,
+							inline = False
+							)
+					await client.get_channel(channel).send(embed=embed, tts=False)
+					wks.update_acell('E2', "")
+			'''
 	client.loop.create_task(task())
 	try:
 		client.loop.run_until_complete(client.start(access_token))
