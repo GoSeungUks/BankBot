@@ -748,7 +748,7 @@ while True:
 				if message.content.startswith('!정산 '):
 					SearchID = message.content[4:]
 					gc = gspread.authorize(credentials)
-					wks = gc.open(basicSetting[12]).worksheet("")
+					wks = gc.open(basicSetting[12]).worksheet("분배시트")
 
 					wks.update_acell('E2', SearchID)
 
