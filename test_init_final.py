@@ -784,7 +784,7 @@ while True:
 				if message.content.startswith('!정산 '):
 					SearchID = message.content[4:]
 					gc = gspread.authorize(credentials)
-					wks = gc.open(basicSetting[12]).worksheet("최종수령내역")
+					wks = gc.open(basicSetting[12]).worksheet("받을내역검색")
 
 					wks.update_acell('E2', SearchID)
 
@@ -1707,7 +1707,7 @@ while True:
 			if message.content.startswith('!정산 '):
 				SearchID = hello[4:]
 				gc = gspread.authorize(credentials)
-				wks = gc.open(basicSetting[12]).worksheet("최종수령내역")  #정산결과 시트이름
+				wks = gc.open(basicSetting[12]).worksheet("받을내역검색")  #정산결과 시트이름
 
 				wks.update_acell('E2', SearchID) 
 
