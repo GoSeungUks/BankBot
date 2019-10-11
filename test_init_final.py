@@ -166,8 +166,8 @@ def init():
 	#print (inputData, len(inputData))
 	
 	### 채널 고정###
-	#basicSetting[6] = int('1234567890') #보이스채널ID
-	#basicSetting[7] = int('1234567890') #택스트채널ID
+	basicSetting[6] = int('572347681087946752') #보이스채널ID
+	basicSetting[7] = int('631684638796152842') #택스트채널ID
 	
 	bossNum = int(len(boss_inputData)/5)
 
