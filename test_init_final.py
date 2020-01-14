@@ -975,7 +975,7 @@ while True:
 							result = wks.acell(basicSetting[16]).value
 
 							embed = discord.Embed(
-									description= '```' + SearchID + ' 님이 받을 다이야는 ' + result + ' 다이야 입니다. \n정산 금액은 판매 완료된 아이템의 합계 입니다. \n풀품 등록 후 바퀴벌래로 쪽지 주세요.```',
+									description= '```' + SearchID + ' 님이 받을 다이야는 ' + result + ' 다이야 입니다. \n정산 금액은 판매 완료된 아이템의 합계 입니다. \n풀품 등록 후 R뱅크 로 쪽지 주세요.```',
 									color=0xff00ff
 									)
 							await msg.channel.send(embed=embed, tts=False)
@@ -1905,7 +1905,7 @@ while True:
 					result = wks.acell(basicSetting[16]).value
 
 					embed = discord.Embed(
-							description= '```' + SearchID + ' 님이 받을 다이야는 ' + result + ' 다이야 입니다. \n정산 금액은 판매 완료된 아이템의 합계 입니다. \n풀품 등록 후 바퀴벌래로 쪽지 주세요.```',
+							description= '```' + SearchID + ' 님이 받을 다이야는 ' + result + ' 다이야 입니다. \n정산 금액은 판매 완료된 아이템의 합계 입니다. \n풀품 등록 후 R뱅크 로 쪽지 주세요.```',
 							color=0xff00ff
 							)
 					await msg.channel.send(embed=embed, tts=False)
