@@ -2186,7 +2186,7 @@ while True:
 
 				for i in range(len(kill_Data)):
 					if kill_Data[i][0] != '':
-						kill_output += ':skull_crossbones: ' + str(kill_Data[i][0]) + ' : ' + str(kill_Data[i][1]) + '개 획득!\n'
+						kill_output += ':skull_crossbones: ' + str(kill_Data[i][0]) + ' : ' + str(kill_Data[i][1]) + '개 보유중!\n'
 
 				if kill_output != '' :
 					embed = discord.Embed(
